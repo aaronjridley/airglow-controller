@@ -13,14 +13,14 @@ from schedule import observations
 
 import utilities.time_helper
 from utilities.image_taker import Image_Helper
-from utilities.send_mail import SendMail
+#from utilities.send_mail import SendMail
 
 from components.camera import getCamera
 from components.shutterhid import HIDLaserShutter
-from components.sky_scanner import SkyScanner
-from components.skyalert import SkyAlert
+#from components.sky_scanner import SkyScanner
+#from components.skyalert import SkyAlert
 from components.powercontrol import PowerControl
-from components.filterwheel import FilterWheel
+#from components.filterwheel import FilterWheel
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
@@ -30,13 +30,15 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 # powerControl.turnOn(config['LaserPowerPort'])
 
 # logging.info('Initializing LaserShutter')
-# lasershutter = HIDLaserShutter(config['vendorId'], config['productId'])
+lasershutter = HIDLaserShutter(config['vendorId'], config['productId'])
 
-# lasershutter.close_shutter()
-# lasershutter.open_shutter()
-# sleep(5)
-# lasershutter.close_shutter()
-# sleep(5)
+lasershutter.close_shutter()
+lasershutter.open_shutter()
+sleep(5)
+lasershutter.close_shutter()
+sleep(5)
+
+exit()
 
 # fw = FilterWheel('/dev/ttyUSB0')
 # fw.home()
