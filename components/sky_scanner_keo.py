@@ -70,27 +70,43 @@ class SkyScanner():
         print("Finished Moving")
 
     def set_pos_real(self, azi_world, zeni_world):
-        azi, zeni = self.convert_to_machine_steps(azi_world, zeni_world)
-        print("THIS is where I am moving", azi, zeni)
+        # JJM REWRITE
         logging.info("SkyScanner moving to azi: %.2f, and zeni: %2f" %(azi_world, zeni_world))
-        logging.info("SkyScanner moving to machine step azi: %.2f, and zeni: %2f" %(azi, zeni))
-        self.ser.write(('a=%d ' % azi).encode())
-        self.ser.write(('z=%d ' % zeni).encode())
-        self.ser.write(('GOSUB4 ').encode())
-        process_az = self.ser.readline().decode()
-        azi1, zeni1 = self.get_curr_coords()
-        while (azi != azi1 or zeni != zeni1):
-            print(azi, azi1, zeni, zeni1)
-            azi1, zeni1 = self.get_curr_coords()
-            sleep(2)
-            print("Waiting")
-            
-        azi1, zeni1 = self.get_curr_coords()
-        azi_curr, zeni_curr = self.get_world_coords()
-        logging.info("SkyScanner current location azi: %.2f, and zeni: %2f" %(azi_curr, zeni_curr))
-        logging.info("SkyScanner current machine step azi: %.2f, and zeni: %2f" %(azi1, zeni1))
-        print("Finished Moving")
 
+        azi_ss = np.mod(azi_world+self.azi_offset,360.)
+        zeni_ss = zeni_world+self.zeni_offset
+        logging.info("SkyScanner moving to SS coords azi: %.2f and zeni: %.2f" %(azi_ss,zeni_ss))
+        try:
+            self.ser.write("S?\r".encode())
+            sleep(1)
+#            res = self.ser.readline().decode()
+            res = self.ser.read_until(b'\r').decode()
+            res = res.strip()
+            trash = self.ser.readline().decode()
+            print('PRIOR TO MOVE STATUS: [%s]' % res)
+            self.ser.write("P(%.2f,%.2f)\r".encode() % (azi_ss, zeni_ss))
+
+            moving = True
+            SS_error = False
+            count = 0
+            while moving == True:
+                count = count+1
+                self.ser.write("S?\r".encode())
+                sleep(1)
+                res = self.ser.readline().decode()
+                print('SET POS [%s]' % res)
+                if ("!P:1" in res):
+                    moving = False
+                if count > 20:
+                    moving = False
+                    SS_error = True
+        
+            print("Finished Moving after %d reads" % count, SS_error)
+
+#            azi_curr, zeni_curr = self.get_world_coords()
+#            logging.info("SkyScanner current location azi: %.2f, and zeni: %2f" %(azi_curr, zeni_curr))
+        except Exception as e:
+            logging.info('Error moving SkyScanner %s', e)
 
 
 
@@ -144,9 +160,10 @@ class SkyScanner():
         return deg
 
     def get_world_coords(self):
-        azi, zeni = self.get_curr_coords()
-        world_az = self.convert_machine_step_to_degrees(azi) - self.azi_offset
-        world_zeni = -self.convert_machine_step_to_degrees(zeni) - self.zeni_offset + 180
+        # JJM REWRITE
+        az_ss, zeni_ss = self.get_curr_coords()
+        world_az = np.mod(az_ss-self.azi_offset,360.0)
+        world_zeni = zeni_ss-self.zeni_offset
         return world_az, world_zeni
 
 
@@ -167,8 +184,7 @@ class SkyScanner():
             if (curr_az == machine_sun_azi and machine_sun_zeni == curr_zen):
                 break
         curr_az, curr_zen = self.get_curr_coords()
-        print(
-            "\nFinished moving to the sun's location - azi coord: %s"  %curr_az  + " zeni coord: %s. \n Use the arrow keys to move the position of the Sky Scanner (azi is left/right. Zeni is up/down). \n Press s to save current offset coords to config. \n Press q to exit out of jog." %curr_zen)
+        print("\nFinished moving to the sun's location - azi coord: %s"  %curr_az  + " zeni coord: %s. \n Use the arrow keys to move the position of the Sky Scanner (azi is left/right. Zeni is up/down). \n Press s to save current offset coords to config. \n Press q to exit out of jog." %curr_zen)
         
 
         def press(key):
@@ -270,44 +286,80 @@ class SkyScanner():
         )    
         return
 
-
-
-    # def get_home_coords(self):
-    #     '''Gets target position of SmartMotor'''
-    #     self.ser.write('RPA '.encode())
-    #     process_az = self.ser.readline().decode()
-    #     print(process_az)
-    #     split_by_command_numbers = process_az.split(' ')
-    #     split_by_hash = split_by_command_numbers[1].split('\r')
-    #     print(split_by_hash)
-    #     # print(split_by_hash)
-    #     ze = int(split_by_hash[0])
-    #     az = int(split_by_hash[1])
-    #     return az, ze
-
     def go_home(self):
+    # JJM REWRITE
         logging.info('Homing Skyscanner')
-        self.ser.write('GOSUB5 '.encode())
-        sleep(20)
-        print("Finished Moving")
+
+        self.ser.write("H!\r".encode())
+        # Querry the state, it will return "1H:1" when it is done
+        moving = True
+        SS_error = False
+        count = 0
+        while moving == True:
+            count = count+1
+            sleep(1)
+            self.ser.write("S?\r".encode())
+            sleep(1)
+#            res = self.ser.readline().decode()
+            res = self.ser.read_until(b'\r').decode()
+            res = res.strip()
+
+            print('HOMING: [%s]' % res)
+
+            if "!H:1" in res:
+                moving = False
+            if count > 40:
+                moving = False
+                SS_error = True
+        
+        print("Finished Moving after %d reads" % count, SS_error)
         logging.info('Homed Skyscanner')
         print("Finished Moving SkyScanner to Home Position")
 
     def get_curr_coords(self):
+    # JJM REWRITE
         '''Gets target position of SmartMotor'''
-        self.ser.write('RPA '.encode())
-        process_az = self.ser.readline().decode()
-        print(process_az)
-        split_by_command_numbers = process_az.split(' ')
-        split_by_hash = split_by_command_numbers[1].split('\r')
-        print(split_by_hash)
-        ze = int(split_by_hash[0])
-        az = int(split_by_hash[1])
+        self.ser.write("S?\r".encode())
+        sleep(1)
+        str = self.ser.read_until(b'\r').decode()
+        trash = self.ser.readline().decode()
+#        str = self.ser.readline().decode()
+        print("GCC S?: %s" % str)
+
+        count = 0
+        reading = True
+
+        while (reading == True) and (count < 20):
+            count = count+1 
+            # Flush the serial line out
+            self.ser.write("P?\r".encode())
+            sleep(1)
+#        str = self.ser.readline().decode()
+            str = self.ser.read_until(b'\r').decode()
+            trash = self.ser.readline().decode()
+            print('GCC %d: %s' % (count, str))
+
+            if "," in str:
+                reading = False
+
+        # Read the serial line
+        print('GCC DONE: %s' % str)
+        pos = str.split(',')
+        logging.info('SS: get_curr_pos: %s', str)
+        try:
+            az=float(pos[0])
+            ze=float(pos[1])
+        except:
+            logging.info('ERROR GETTING COORDS FROM SS')
+            az = None
+            ze = None
+            raise Exception("Error getting coordinates from SkyScanner")
+        # These are in SS coordinates
         return az, ze
 
     def _openSerial(self):
         '''opens serial port and sets handle'''
-        self.ser = serial.Serial(port='/dev/ttyUSB0', baudrate=9600,
+        self.ser = serial.Serial(port=self.port_location, baudrate=115200,
                                  parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                                  bytesize=serial.EIGHTBITS, timeout=1)
 
@@ -332,7 +384,3 @@ class SkyScanner():
         bMoon = np.sin(moonAz)*np.sin(moonZe)
         moonAngle = np.arccos(a*aMoon + b*bMoon + np.cos(ze*pi/180) * np.cos(moonZe))
         return moonAngle*180./pi
-    
-
-
-    

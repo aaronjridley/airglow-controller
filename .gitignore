@@ -6,3 +6,9 @@ errorcodestable.c
 errorcodestable.cpython*
 *.png
 __pycache__
+
+config.py
+schedule.py
+*.swp
+
+

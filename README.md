@@ -1,3 +1,11 @@
+# Tested on
+Ubuntu 22.04
+
+Python 3.10.6
+
+Make a file `config.py` following `config.py.example` to setup configuration for different sites.
+Make a file `schedule.py` following `schedule.py.example` to setup configuration for different sites.
+
 # Initial setup for Odyssey
 
 Install Ubuntu 22.04 with erase disk and wipe out old operating system (Windows)
@@ -14,8 +22,6 @@ check status:
 
 If it is not running you might need to turn off Ubuntu's native RDP (which is less convenient than xrdp).
 Log out and test RDP
-
-`apt install libhidapi-hidraw0`
 
 ## Setup SSH
 
@@ -81,7 +87,7 @@ After successful installation of Andor SDK, `libandor.so` should appear in `/usr
 # Python
 `sudo apt-get update`
 
-`sudo apt-get install python3.6`
+Install Python 3.10.6
 
 `sudo apt-get install python3-pip`
 
@@ -90,6 +96,8 @@ Clone this repo into home dir `~/airglow/airglow-controller`
 `pip3 install -r requirements.txt`
 
 ## Cython for SDK
+
+`sudo apt-get install build-essential python3-dev`
 
 cd into `components/andor_wrapper/andorsdk_wrapper` and `python3 setup.py build_ext -i` to build the python module
 
@@ -105,8 +113,12 @@ Remember to set the udev rule for laser shutter (written above)
 
 `python3 connection_test.py` to test all the components
 
-# Set crontab
+## Set crontab
+`crontab -l`
 
+## Setup static USB port
+Should update for actual text direction. Meanwhile here is a picture.
+![image](https://github.com/1n0r1/airglow-controller/assets/80285371/4cf66383-d5b0-44f2-8db4-d39c832494c4)
 
 
 ## Gmail setup (optional)
