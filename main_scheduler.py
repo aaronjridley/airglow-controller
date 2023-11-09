@@ -8,18 +8,20 @@ import pickle
 from time import sleep
 from datetime import datetime, timedelta
 import smtplib, ssl
-from config import config, skyscan_config
+from config import config, skyscan_config, filterwheel_config
 from schedule import observations
 
 import utilities.time_helper
 from utilities.image_taker import Image_Helper
 from utilities.send_mail import SendMail
+from utilities.get_IP import get_IP_from_MAC
 
 from components.camera import getCamera
 from components.shutterhid import HIDLaserShutter
-from components.sky_scanner import SkyScanner
+from components.sky_scanner_keo import SkyScanner
 from components.skyalert import SkyAlert
 from components.powercontrol import PowerControl
+from components.filterwheel import FilterWheel
 
 try:
     # logger file
@@ -43,6 +45,54 @@ try:
     powerControl.turnOn(config['SkyScannerPowerPort'])
     powerControl.turnOn(config['LaserPowerPort'])
 
+    # Filter wheel power (was a sequence before to reboot the Pi, but took that out
+    powerControl.turnOn(config['FilterWheelPowerPort'])
+
+    # Cycle the Cloud sensor power
+    powerControl.turnOff(config['CloudSensorPowerPort'])
+    sleep(5)
+    powerControl.turnOn(config['CloudSensorPowerPort'])
+    sleep(45)
+    SkyAlert_IP = get_IP_from_MAC(config['skyAlertMAC'])
+    if SkyAlert_IP is not None:
+        config['skyAlertAddress'] = 'http://' + SkyAlert_IP + ':81'
+        logging.info('Found SkyAlert at %s' % SkyAlert_IP)
+    else:
+        logging.info('Could not find SkyAlert after power cycle')
+
+    # Make sure we can find the filterwheel
+    filterwheel_serial = False
+    filterwheel_IP = get_IP_from_MAC(filterwheel_config['MAC_address'])
+    if filterwheel_IP is not None:
+        filterwheel_config['ip_address'] = 'http://' + filterwheel_IP + ':8080/'
+        filterwheel_serial = False
+        logging.info('Found FilterWheel at %s' % filterwheel_IP)
+    else:
+        logging.info('Could not find the IP address for the filterwheel. Rebooting.')
+        powerControl.turnOff(config['FilterWheelControlPowerPort'])
+        sleep(5)
+        powerControl.turnOn(config['FilterWheelControlPowerPort'])
+        sleep(60)
+        filterwheel_IP = get_IP_from_MAC(filterwheel_config['MAC_address'])
+        if filterwheel_IP is not None:
+            filterwheel_config['ip_address'] = 'http://' + filterwheel_IP + ':8080'
+            filterwheel_serial = False
+            logging.info('Found FilterWheel at %s' % filterwheel_IP)
+        else:
+            logging.info('Still cannot find IP address fo the filterwheel. Waiting...')
+            wait_count = 0
+            found = False
+            while wait_count < 5 and found == False:
+                wait_count = wait_count+1
+                sleep(15)
+                filterwheel_IP = get_IP_from_MAC(filterwheel_config['MAC_address'])
+                if filterwheel_IP is not None:
+                    filterwheel_config['ip_address'] = 'http://' + filterwheel_IP + ':8080'
+                    filterwheel_serial = False
+                    found = True
+                    logging.info('Found Filterwheel at %s' % filterwheel_IP)
+                else:
+                    filterwheel_serial = True
 
     logging.info('Waiting until Housekeeping time: ' +
                 str(timeHelper.getHousekeeping()))
@@ -53,18 +103,33 @@ try:
     lasershutter = HIDLaserShutter(config['vendorId'], config['productId'])
     skyscanner = SkyScanner(skyscan_config['max_steps'], skyscan_config['azi_offset'], skyscan_config['zeni_offset'], skyscan_config['azi_world'], skyscan_config['zeni_world'], skyscan_config['number_of_steps'], skyscan_config['port_location'])
     camera = getCamera("Andor")
+    if filterwheel_serial:
+        # Use the serial port
+        logging.info('Opening Filterwheel serial port')
+        fw = FilterWheel(port=filterwheel_config['port_location'])
+    else:
+        # Use the network (this is preferred!)
+        logging.info('Opening Filterwheel network')
+        fw = FilterWheel(ip_address=filterwheel_config['ip_address'])
 
     # Signal to response to interupt/kill signal
     def signal_handler(sig, frame):
         skyscanner.go_home()
+        fw.go(filterwheel_config['park_position'])
         camera.turnOffCooler()
         camera.shutDown()
+        powerControl = PowerControl(config['powerSwitchAddress'], config['powerSwitchUser'], config['powerSwitchPassword'])
+        powerControl.turnOff(config['AndorPowerPort'])
+        powerControl.turnOff(config['SkyScannerPowerPort'])
+        powerControl.turnOff(config['LaserPowerPort'])
+        powerControl.turnOff(config['FilterWheelPowerPort'])
         logging.info('Exiting')
         sys.exit(0)
     signal.signal(signal.SIGINT, signal_handler)
 
 
     skyscanner.go_home()
+    fw.home()
 
     # Setup camera
     camera.setReadMode()
@@ -94,7 +159,7 @@ try:
         bias_image = imageTaker.take_bias_image(config["bias_expose"], 0, 0)
         dark_image = imageTaker.take_dark_image(config["dark_expose"], 0, 0)
         laser_image = imageTaker.take_laser_image(
-            config["laser_expose"], skyscanner, lasershutter, config["azi_laser"], config["zen_laser"])
+            config["laser_expose"], skyscanner, lasershutter, config["azi_laser"], config["zen_laser"], fw, filterwheel_config["laser_position"])
         if config['laser_timedelta'] is not None:
             config['laser_lasttime'] = datetime.now()
     else:
@@ -124,10 +189,16 @@ try:
                 observation["skyScannerLocation"][0], observation['skyScannerLocation'][1])
             world_az, world_zeni = skyscanner.get_world_coords()
             logging.info("The Sky Scanner has moved to azi: %.2f, and zeni: %2f" %(world_az, world_zeni))
+
+            # Move the filterwheel
+            logging.info('Moving FilterWheel to: %d' % (observation['filterPosition']))
+            fw.go(observation['filterPosition'])
+            logging.info("Moved FilterWheel")
+
             logging.info('Taking sky exposure')
 
             if (observation['lastIntensity'] == 0 or observation['lastExpTime'] == 0):
-                observation['exposureTime'] = 300
+                observation['exposureTime'] = observation['defaultExposureTime']
             else:
                 observation['exposureTime'] = min(0.5*observation['lastExpTime']*(1 + observation['desiredIntensity']/observation['lastIntensity']),
                                                 config['maxExposureTime'])
@@ -160,12 +231,11 @@ try:
                 logging.info("The Sky Scanner is pointed at laser position of azi: %.2f and zeni %.2f" %(world_az, world_zeni))
                 logging.info('Taking laser image')
                 laser_image = imageTaker.take_laser_image(
-                    config["laser_expose"], skyscanner, lasershutter, config["azi_laser"], config["zen_laser"])
+                    config["laser_expose"], skyscanner, lasershutter, config["azi_laser"], config["zen_laser"], fw, filterwheel_config["laser_position"])
                 config['laser_lasttime'] = datetime.now()
 
-
-
     skyscanner.go_home()
+    fw.go(filterwheel_config['park_position'])
 
     logging.info('Warming up CCD')
     camera.turnOffCooler()
@@ -180,11 +250,19 @@ try:
     powerControl.turnOff(config['AndorPowerPort'])
     powerControl.turnOff(config['SkyScannerPowerPort'])
     powerControl.turnOff(config['LaserPowerPort'])
+    powerControl.turnOff(config['FilterWheelPowerPort'])
 
     logging.info('Executed flawlessly, exitting')
 
 except Exception as e:
     logging.error(e)
+
+    logging.error('Turning off components')
+    powerControl = PowerControl(config['powerSwitchAddress'], config['powerSwitchUser'], config['powerSwitchPassword'])
+    powerControl.turnOff(config['AndorPowerPort'])
+    powerControl.turnOff(config['SkyScannerPowerPort'])
+    powerControl.turnOff(config['LaserPowerPort'])
+    powerControl.turnOff(config['FilterWheelPowerPort'])
 
     sm = SendMail(config['email'], config['pickleCred'], config['gmailCred'], config['site'])
     

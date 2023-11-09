@@ -8,7 +8,7 @@ import pickle
 from time import sleep
 from datetime import datetime, timedelta
 import smtplib, ssl
-from config import config, skyscan_config
+from config import config, skyscan_config, filterwheel_config
 from schedule import observations
 
 import utilities.time_helper
@@ -29,29 +29,35 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 # powerControl.turnOn(config['SkyScannerPowerPort'])
 # powerControl.turnOn(config['LaserPowerPort'])
 
-# logging.info('Initializing LaserShutter')
-lasershutter = HIDLaserShutter(config['vendorId'], config['productId'])
+#logging.info('Initializing LaserShutter')
+#lasershutter = HIDLaserShutter(config['vendorId'], config['productId'])
+#
+#lasershutter.close_shutter()
+#lasershutter.open_shutter()
+#sleep(5)
+#lasershutter.close_shutter()
+#sleep(5)
 
-lasershutter.close_shutter()
-lasershutter.open_shutter()
-sleep(5)
-lasershutter.close_shutter()
-sleep(5)
+fw = FilterWheel(ip_address='http://192.168.1.143:8080/')
+fw.home()
+fw.go(1)
 
-exit()
+#logging.info('Initializing SkyScanner')
+#skyscanner = SkyScanner(skyscan_config['max_steps'], skyscan_config['azi_offset'], skyscan_config['zeni_offset'], skyscan_config['azi_world'], skyscan_config['zeni_world'], skyscan_config['number_of_steps'], skyscan_config['port_location'])
+#logging.info('Sending SkyScanner home')
+#skyscanner.go_home()
+#skyscanner.set_pos_real(45,45)
 
-# fw = FilterWheel('/dev/ttyUSB0')
-# fw.home()
-
-# logging.info('Initializing SkyScanner')
-# skyscanner = SkyScanner(skyscan_config['max_steps'], skyscan_config['azi_offset'], skyscan_config['zeni_offset'], skyscan_config['azi_world'], skyscan_config['zeni_world'], skyscan_config['number_of_steps'], skyscan_config['port_location'])
-# logging.info('Sending SkyScanner home')
-# skyscanner.go_home()
-
-logging.info('Initializing CCD')
-camera = getCamera("Andor")
-print(camera.getTemperature())
-camera.shutDown()
+#logging.info('Initializing CCD')
+#camera = getCamera("Andor")
+#camera.setTemperature(-40)
+#camera.turnOnCooler()
+#print(camera.getTemperature())
+#sleep(10)
+#print(camera.getTemperature())
+#sleep(10)
+#print(camera.getTemperature())
+#camera.shutDown()
 
 # sa = SkyAlert(config['skyAlertAddress'])
 # logging.info(sa.getList())
