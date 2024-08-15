@@ -47,11 +47,17 @@ config = {
     'LaserPowerPort': 4,
     'LaserShutterPowerPort': 8,
 
+    # Arduino specifications for moving the sled:
+    'arduino_port' : '/dev/ttyACM0',
+    'arduino_baud' : 9600,
+
     # Laser shutter
     'vendorId': 0x0461,
-    'productId': 0x0030,
+    'productId': 0x0030
 
 }
 
 
+dummy = {
+    'nothing': 0}
 
