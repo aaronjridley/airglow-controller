@@ -30,7 +30,11 @@ class Image_Helper:
         self.instrument = instrument
         self.XBinning = xbin
         self.YBinning = ybin
-        self.skyAlert = skyAlert
+        if (skyAlert == None):
+            self.useSky = False
+        else:
+            self.useSky = True
+            self.skyAlert = skyAlert
 
     def save_image(self, type, imgData, exp, az, ze, startTime):
         data_files = h5py.File(self.folderName + '/' +
@@ -42,7 +46,8 @@ class Image_Helper:
         f.attrs['azAngle'] = az
         # JJM SAME AS ABOVE (READ THE VALUE FROM THE SKYSCANNER
         f.attrs['zeAngle'] = ze
-        f.attrs['LocalTime'] = startTime 
+        f.attrs['LocalTime'] = startTime
+        f.attrs['UTC'] = str(datetime.utcnow())
         f.attrs['CCDTemperature'] = self.camera.getTemperature()
         f.attrs['SiteName'] = self.site
         f.attrs['SiteLatitude'] = self.latitude
@@ -52,11 +57,17 @@ class Image_Helper:
         f.attrs['YBinning'] = self.YBinning
 
         # SkyAlert data
-        f.attrs['AmbientTemperature (C)'] = self.skyAlert.getAmbientTemperature()
-        f.attrs['OutsideTemperature (C)'] = self.skyAlert.getSkyTemperature()
-        f.attrs['Pressure (Pa)'] = self.skyAlert.getPressure()
-        f.attrs['Humidity (%)'] = self.skyAlert.getHumidity()
-        # do we need wind speed, dampness, brightness? What unit? 
+        if (self.useSky):
+            f.attrs['AmbientTemperature (C)'] = self.skyAlert.getAmbientTemperature()
+            f.attrs['OutsideTemperature (C)'] = self.skyAlert.getSkyTemperature()
+            f.attrs['Pressure (Pa)'] = self.skyAlert.getPressure()
+            f.attrs['Humidity (%)'] = self.skyAlert.getHumidity()
+            # do we need wind speed, dampness, brightness? What unit? 
+        else:
+            f.attrs['AmbientTemperature (C)'] = 0.0
+            f.attrs['OutsideTemperature (C)'] = 0.0
+            f.attrs['Pressure (Pa)'] = 0.0
+            f.attrs['Humidity (%)'] = 0.0
 
 
         data_files.close()
@@ -102,7 +113,11 @@ class Image_Helper:
         while (self.camera.getStatus() == "DRV_ACQUIRING"):
             sleep(2)
         nparr = self.camera.getImage()
-        azreal, zereal = skyscanner.get_world_coords()
+        if (skyscanner == None):
+            azreal = az
+            zereal = ze
+        else:
+            azreal, zereal = skyscanner.get_world_coords()
         self.save_image(image_tag, nparr, exposure, azreal, zereal, startTime)
         return nparr
 
