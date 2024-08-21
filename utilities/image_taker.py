@@ -37,8 +37,11 @@ class Image_Helper:
             self.skyAlert = skyAlert
 
     def save_image(self, type, imgData, exp, az, ze, startTime):
-        data_files = h5py.File(self.folderName + '/' +
-                               self.site + '_' + type + '_' + datetime.now().strftime('%Y%m%d_%H%M%S') + '.hdf5', 'w')
+        filename = \
+            self.folderName + '/' + \
+            self.site + '_' + type + '_' + \
+            datetime.utcnow().strftime('%Y%m%d_%H%M%S') + '.hdf5'
+        data_files = h5py.File(filename, 'w')
         # Log
         f = data_files.create_dataset("image", data=imgData)
         f.attrs['ExposureTime'] = exp
@@ -107,7 +110,7 @@ class Image_Helper:
         # keeps shutter open by default
         self.camera.setShutter()
         self.camera.setExposureTime(exposure)
-        startTime = str(datetime.now())
+        startTime = str(datetime.utcnow())
         self.camera.startAcquisition()
         sleep(exposure)
         while (self.camera.getStatus() == "DRV_ACQUIRING"):
