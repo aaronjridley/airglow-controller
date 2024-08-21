@@ -25,9 +25,9 @@ from components.powercontrol import PowerControl
 
 
 
-# ----------------------------------------------------------------------        
+# ---------------------------------------------------------------------- 
 # These are for moving the sled
-# ----------------------------------------------------------------------        
+# ----------------------------------------------------------------------  
 
 def move_sled_to_sky(arduino):
     sledPositionSky = b"extend\n"
@@ -73,9 +73,9 @@ def remove_hotspots(image):
     
     return newImage
     
-# ----------------------------------------------------------------------        
+# ----------------------------------------------------------------------
 # Main code
-# ----------------------------------------------------------------------        
+# ----------------------------------------------------------------------   
 
 
 try:
@@ -83,7 +83,6 @@ try:
     log_name = config['log_dir'] + config['site'] + datetime.now().strftime('_%Y%m%d_%H%M%S.log')
     logging.basicConfig(filename=log_name, encoding='utf-8',
                         format='%(asctime)s %(message)s',  level=logging.DEBUG)
-
 
     timeHelper = utilities.time_helper.TimeHelper()
     sunrise = timeHelper.getSunrise()
