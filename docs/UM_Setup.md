@@ -83,6 +83,9 @@ C. You should be able to run the command:
 
 ssh fpi02.umfpi.net
 
+22. Need to fix the Arduino permission issue: sudo usermod -a -G dialout ridley
+
+23. To get HID working, need to start processes in the /etc/udev/rules.d/ directory (grab the hid stuff from another computer).
 
 
 List of things to install (sudo yum install ...):
@@ -92,3 +95,4 @@ python3-h5py
 libusb-devel
 python36-devel
 python3-Cython
+hidapi
