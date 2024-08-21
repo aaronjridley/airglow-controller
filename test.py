@@ -33,8 +33,8 @@ def parse_args():
                                      'Run the FPI through the night')
     parser.add_argument('-port', default = -1, type = int, \
 			help='port to turn on (-1 for no port!)')
-    parser.add_argument('-debug', \
-                        help='Turn off logging and turn on debugging', \
+    parser.add_argument('-log', \
+                        help='Turn on logging and turn off debugging', \
                         action="store_true")
     args = parser.parse_args()
 
@@ -103,19 +103,35 @@ def remove_hotspots(image):
 # Main code
 # ----------------------------------------------------------------------
 
+exposureSky = 120.0
+exposureLaser = 60.0
+doContinue = True
+stopFile = 'stop'
+nTimes = 8
+
 args = parse_args()
-iDebug = args.debug
+iDebug = not args.log
+
+command = '/bin/rm -f ' + stopFile
+os.system(command)
 
 timeHelper = utilities.time_helper.TimeHelper()
 sunrise = timeHelper.getSunriseUtcCorrect()
 myprint('Sunrise time set to ' + str(sunrise))
-sunset = timeHelper.getSunset()
+sunset = timeHelper.getSunsetUtcCorrect()
 myprint('Sunset time set to ' + str(sunset))
 
-print(datetime.utcnow())
+ut = datetime.utcnow()
 
-exit()
+if (sunrise > sunset):
+    if (ut < sunset):
+        myprint('Need to wait until sunset')
+        timeHelper.waitUntilHousekeeping(deltaMinutes=-30)
+else:
+    myprint('It looks like this script was started after sunset!')
+    myprint('Proceeding!')
 
+    
 # Turn on power
 powerControl = PowerControl(config['powerSwitchAddress'], \
                             config['powerSwitchUser'], \
@@ -138,11 +154,7 @@ turn_on(powerControl, config['SledPowerPort'])
 turn_on(powerControl, config['LaserPowerPort'])
 turn_on(powerControl, config['LaserShutterPowerPort'])
 
-#powerControl.turnOn(config['AndorPowerPort'])
-#powerControl.turnOn(config['UsbPowerPort'])
-#powerControl.turnOn(config['SledPowerPort'])
-#powerControl.turnOn(config['LaserPowerPort'])
-#powerControl.turnOn(config['LaserShutterPowerPort'])
+timeHelper.waitUntilHousekeeping()
 
 # Get all of the components:
 lasershutter = HIDLaserShutter(config['vendorId'], config['productId'])
@@ -173,6 +185,10 @@ myprint('Waiting for camera to cool down:')
 while (camera.getTemperature() > config["temp_setpoint"]+5):
     myprint('  --> CCD Temperature: ' + str(camera.getTemperature()))
     sleep(5)
+
+myprint("Waiting for sunset: " + str(sunset))
+timeHelper.waitUntilStartTimeUtc()
+myprint('Sunset time start')
     
 myprint('Inititing image taker...')
 imageTaker = Image_Helper(data_folder_name, \
@@ -185,32 +201,49 @@ imageTaker = Image_Helper(data_folder_name, \
                           config['vbin'], \
                           None)
 
-exposureSky = 120.0
-exposureLaser = 60.0
-for i in range(2):
+while (doContinue):
     myprint('Taking bias image - exposure = %5.1f' % config["bias_expose"])
     bias_image = imageTaker.take_bias_image(config["bias_expose"], 0, 0)
 
-    move_sled_to_cal(arduino)
-    lasershutter.open_shutter()
-    myprint('Taking laser image - exposure = %5.1f' % exposureLaser)
-    laser_image = \
-        imageTaker.take_normal_image('L',
-                                     exposureLaser,
-                                     0.0, \
-                                     0.0, \
-                                     None)
-    
-    move_sled_to_sky(arduino)
-    lasershutter.close_shutter()
-    for j in range(3):
-        myprint('Taking sky image - exposure = %5.1f' % exposureSky)
-        new_image = \
-            imageTaker.take_normal_image('XR',
-                                         exposureSky,
+    if (timeHelper.beforeSunrise(exposureLaser)):
+        move_sled_to_cal(arduino)
+        lasershutter.open_shutter()
+        myprint('Taking laser image - exposure = %5.1f' % exposureLaser)
+        laser_image = \
+            imageTaker.take_normal_image('L',
+                                         exposureLaser,
                                          0.0, \
                                          0.0, \
                                          None)
+        if (os.path.isfile(stopFile)):
+            myprint('Stop file exists!')
+            doContinue = False
+    else:
+        doContinue = False
+        
+    move_sled_to_sky(arduino)
+    lasershutter.close_shutter()
+    if (doContinue):
+        iTime = 0
+    else:
+        iTIme = nTimes
+    while (iTime < nTimes):
+        if (timeHelper.beforeSunrise(exposureSky)):
+            myprint('Taking sky image - exposure = %5.1f' % exposureSky)
+            new_image = \
+                imageTaker.take_normal_image('XR',
+                                             exposureSky,
+                                             0.0, \
+                                             0.0, \
+                                             None)
+            iTime = iTime + 1
+            if (os.path.isfile(stopFile)):
+                myprint('Stop file exists!')
+                doContinue = False
+                iTime = nTimes
+        else:
+            iTime = nTimes
+            doContinue = False
 
     
 myprint('Warming up CCD')
