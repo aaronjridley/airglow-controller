@@ -1,0 +1,14 @@
+
+alias gsl='gs `ls -t *.ps | head -1`'
+alias tgz='tar -xvzf'
+alias brm=/bin/rm
+alias save='setenv SAVE_DIR $PWD'
+alias back='cd $SAVE_DIR'
+alias em='emacs -nw'
+alias purge="rm -f *~ .*~ *.bak"
+
+# some more ls aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
