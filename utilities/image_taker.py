@@ -107,9 +107,14 @@ class Image_Helper:
         return nparr
 
     def take_normal_image(self, image_tag, exposure, az, ze, skyscanner):
-        # keeps shutter open by default
-        self.camera.setShutter()
+        # These are settings that the UM cameras need to open the shutter
+        # and take an image.  Not sure which one is critical in making the
+        # camera work properly, but these 4 settings work:
+        self.camera.setReadMode(4)
+        self.camera.setShutter(1)
+        self.camera.setAcquisitionMode(1)
         self.camera.setExposureTime(exposure)
+        
         startTime = str(datetime.utcnow())
         self.camera.startAcquisition()
         sleep(exposure)
