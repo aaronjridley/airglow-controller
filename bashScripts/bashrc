@@ -116,4 +116,4 @@ if ! shopt -oq posix; then
 fi
 
 export PATH="./:$PATH:~/bin"
-export PS1="(fpixx) \W% "
+export PS1="(fpi@fpixx) \W% "
