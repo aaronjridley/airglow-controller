@@ -1,16 +1,24 @@
 
 Computer comes configured with RedHat Enterprize
 
-1. Make a new user account called 'fpi'. 
+1. Make a new user account called 'fpi'
+sudo adduser -G dialout --create-home fpi
+sudo passwd fpi
+sudo usermod -–append –G tty fpi
 
-2. scp .bashrc, .bash_aliases, .profile scripts over. Edit computer
-name and path in bashrc file
+2. make Software directory
 
-3. set up ssh keys
+3. git clone https://github.com/aaronjridley/airglow-controller.git
 
-4. make Software directory
+4. cp bashrc, bash_aliases, profile scripts over from the bashScript
+directory. Edit computer name and path in bashrc file
 
-5. git clone https://github.com/aaronjridley/airglow-controller.git
+5. set up ssh keys and ssh config (examples in bashScript directory)
+
+5a. From laptop to fpi system
+5b. From fpi system to mia
+5c. From fpi system to magnetometer
+5d. From magnetometer to Fpi system
 
 Need sudo access for next several steps, so do this from an account
 with sudo access:
@@ -23,7 +31,7 @@ with sudo access:
 
 9. sudo install_andor
 
-Now, in the airglow-controller directory / account:
+Now (without sudo...), in the airglow-controller directory / account:
 
 10. cd into components/andor_wrapper/andorsdk_wrapper
 
@@ -34,7 +42,8 @@ Now, in the airglow-controller directory / account:
 
 Connecting through a tunnel with Cloudflare:
 
-13. download cloudflared to the machine you want to tunnel TO from
+13. download cloudflared to the machine you want to tunnel TO (i.e.,
+the fpi machine):
 
 https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
 
