@@ -41,7 +41,8 @@ Now (without sudo...), in the airglow-controller directory / account:
 
 10. cd into components/andor_wrapper/andorsdk_wrapper
 
-11. python3 setup.py build_ext -i to build the python module
+11. build it:
+python3 setup.py build_ext -i
 
 12. go into the airglow-controller directory and try:
 python3
