@@ -14,6 +14,7 @@ import serial
 from config import config
 
 import argparse
+import logging
 
 # ----------------------------------------------------------------------  
 # Function to parse input arguments                                       
@@ -80,6 +81,14 @@ for port in ports:
     powerControl.turnOn(port)
     sleep(2)
 
+print('Creating a log file')
+log_name = config['log_dir'] + config['site'] + datetime.now().strftime('_%Y%m%d_%H%M%S.log')
+logging.basicConfig(filename = log_name, \
+                    format = '%(asctime)s %(message)s',  \
+                    level = logging.DEBUG)
+logging.info("This is a test!")
+
+    
 print(" -> Testing Arduino...")
 arduino_port = '/dev/ttyACM0'
 baud = 9600
