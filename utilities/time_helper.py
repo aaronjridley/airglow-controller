@@ -15,7 +15,9 @@ class TimeHelper:
         self.site_location.elevation = config["elevation"]
         self.site_location.horizon = config["horizon"]
         self.sun = ephem.Sun()
-        self.offset = 40.0
+        # Don't need an offset, since the goal is way past sunset and
+        # way before sunrise:
+        self.offset = 0.0
         self.utcdate = datetime.utcnow()
 
     def getSunrise(self):
