@@ -1,0 +1,38 @@
+
+Host pi01
+     User fpiusr
+     HostName 10.0.0.121
+
+Host pi02
+     User fpiusr
+     HostName 10.0.0.122
+
+Host pi03
+     User fpiusr
+     HostName 10.0.0.123
+
+# Moldwin2022!
+Host mag01
+     User pi
+     HostName 10.0.0.111
+
+Host zl
+     User ridley
+     Hostname zed.umfpi.net
+     ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+
+Host ml
+     User ridley
+     Hostname mia.umfpi.net
+     ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+
+Host fpi02l
+     User ridley
+     Hostname fpi02.umfpi.net
+     ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+     
+Host fpi03l
+     User ridley
+     Hostname fpi03.umfpi.net
+     ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+
