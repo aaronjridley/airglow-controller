@@ -127,7 +127,7 @@ camera.turnOnCooler()
 # Wait until temperature stablize and print the temperature
 
 print('Waiting for camera to cool down:')
-while (camera.getTemperature() > desired_temp+2):
+while (camera.getTemperature() > cameraTemp+2):
     print('  --> CCD Temperature: ' + str(camera.getTemperature()))
     sleep(5)
 
