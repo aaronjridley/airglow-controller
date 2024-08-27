@@ -60,6 +60,7 @@ mkdir Data/ann0x
 mkdir Data/ann0x/logfiles
 mkdir Data/ann0x/mag
 mkdir Data/ann0x/fpi
+cp Software/airglow-controller/bashScripts/backup.sh Data
 
 15. Test the system with:
 cd Software/airglow-controller
