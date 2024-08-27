@@ -17,7 +17,7 @@ config = {
     'laser_expose': 60,
     'azi_laser': 90,
     'zen_laser': 180,
-    'data_dir': '/home/ridley/Data/ann01/',
+    'data_dir': '/home/ridley/Data/ann01/fpi/',
     'log_dir': '/home/ridley/Data/ann01/logfiles/',
     'laser_timedelta': timedelta(minutes=15),
     'laser_lasttime': None,
