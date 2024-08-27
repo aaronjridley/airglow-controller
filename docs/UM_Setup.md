@@ -6,15 +6,21 @@ sudo adduser -G dialout --create-home fpi
 sudo passwd fpi
 sudo usermod -–append –G tty fpi
 
-2. make Software directory
+2. make Software directory;
+mkdir Software
+cd Software
 
 3. git clone https://github.com/aaronjridley/airglow-controller.git
 
 4. cp bashrc, bash_aliases, profile scripts over from the bashScript
 directory. Edit computer name and path in bashrc file
+cd
+cp Software/airglow-controller/bashScripts/bashrc ./bashrc
+cp Software/airglow-controller/bashScripts/bash_aliases ./bash_aliases
+cp Software/airglow-controller/bashScripts/bash_profile ./bash_profile
+em .bashrc
 
 5. set up ssh keys and ssh config (examples in bashScript directory)
-
 5a. From laptop to fpi system
 5b. From fpi system to mia
 5c. From fpi system to magnetometer
@@ -37,10 +43,31 @@ Now (without sudo...), in the airglow-controller directory / account:
 
 11. python3 setup.py build_ext -i to build the python module
 
-12. go into the airglow-controller directory, go into python and try:
-    "from components.camera import getCamera"
+12. go into the airglow-controller directory and try:
+python3
+from components.camera import getCamera
 
+13. Copy and edit the config file for the system:
+cp config_ann01.py config.py
+em config.py
+(Change site, data_dir, and log_dir at a minimum)
+
+14. Make the data directories:
+cd
+mkdir Data
+mkdir Data/ann0x
+mkdir Data/ann0x/logfiles
+mkdir Data/ann0x/mag
+mkdir Data/ann0x/fpi
+
+15. Test the system with:
+cd Software/airglow-controller
+./port_power.py -allcomps -on
+
+
+---------------------------------------------------------------------
 Connecting through a tunnel with Cloudflare:
+---------------------------------------------------------------------
 
 13. download cloudflared to the machine you want to tunnel TO (i.e.,
 the fpi machine):
